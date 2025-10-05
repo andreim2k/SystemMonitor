@@ -59,8 +59,8 @@ struct SystemMonitorApp: App {
         
         // Calculate width for each metric group using natural icon sizes
         let naturalIconWidth: CGFloat = 16  // Natural width of 16pt SF Symbols
-        let cpuIconTextSpacing: CGFloat = 6  // Space between CPU icon and percentage
-        let diskIconTextSpacing: CGFloat = 6  // Space between disk icon and GB text
+        let cpuIconTextSpacing: CGFloat = 5  // Space between CPU icon and percentage
+        let diskIconTextSpacing: CGFloat = 7  // Space between disk icon and GB text (extra space)
         let cpuWidth = naturalIconWidth + cpuIconTextSpacing + cpuText.size(withAttributes: textAttributes).width
         let netText = "↑\(netUpText)/↓\(netDownText)M"
         let netWidth = naturalIconWidth + spacing + netText.size(withAttributes: textAttributes).width
