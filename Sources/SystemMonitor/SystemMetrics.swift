@@ -18,6 +18,11 @@ class SystemMetrics: ObservableObject {
     @Published var diskUsed: Int64 = 0
     @Published var diskTotal: Int64 = 0
     
+    // Token tracking
+    @Published var tokensUsed: Int = 1247852  // Current session tokens
+    @Published var tokensTotal: Int = 2000000  // Plan limit (2M for example)
+    @Published var currentPlan: String = "Pro Plan"
+    
     @Published var cpuHistory: [Double] = []
     @Published var memoryHistory: [Double] = []
     @Published var networkUploadHistory: [Double] = []
