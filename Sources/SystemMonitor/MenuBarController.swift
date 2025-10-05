@@ -35,7 +35,7 @@ class MenuBarController: NSObject, ObservableObject {
             .environmentObject(systemMetrics)
 
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 360, height: 430)
+        popover.contentSize = NSSize(width: 360, height: 400)
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = NSHostingController(rootView: contentView)
