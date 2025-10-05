@@ -424,9 +424,15 @@ struct LiquidGlassDiskCard: View {
                 .scaleEffect(isAnimating ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 2).repeatForever(), value: isAnimating)
             
-            Text(systemMetrics.formatBytes(systemMetrics.diskTotal - systemMetrics.diskUsed))
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(.purple)
+            VStack(spacing: 2) {
+                Text(systemMetrics.formatBytes(systemMetrics.diskTotal - systemMetrics.diskUsed))
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(.purple)
+                
+                Text("of \(systemMetrics.formatBytes(systemMetrics.diskTotal))")
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
             .contentTransition(.numericText())
             
             Text("Storage")
