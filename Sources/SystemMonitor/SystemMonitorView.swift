@@ -20,7 +20,7 @@ struct LiquidGlassMenuView: View {
         .padding(.horizontal, 24)
         .padding(.top, 28)
         .padding(.bottom, 24)
-        .frame(width: 360, height: 580)
+        .frame(width: 360, height: 480)
         .background(
             ZStack {
                 // Animated background gradient
@@ -112,9 +112,6 @@ struct LiquidGlassMenuView: View {
 
                 LiquidGlassDiskCard()
             }
-
-            // Token usage card (full width)
-            LiquidGlassTokenCard()
         }
     }
 
@@ -150,7 +147,7 @@ struct LiquidGlassMenuView: View {
                     .frame(width: CGFloat.random(in: 3...6))
                     .position(
                         x: CGFloat.random(in: 0...360),
-                        y: CGFloat.random(in: 0...580)
+                        y: CGFloat.random(in: 0...480)
                     )
                     .animation(
                         .linear(duration: Double.random(in: 4...8))
@@ -262,56 +259,6 @@ struct LiquidGlassDiskCard: View {
         .frame(maxWidth: .infinity)
         .padding(16)
         .background(liquidGlassBackground(color: .purple))
-        .onAppear {
-            isAnimating = true
-        }
-    }
-}
-
-struct LiquidGlassTokenCard: View {
-    @EnvironmentObject var systemMetrics: SystemMetrics
-    @State private var isAnimating = false
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "brain.head.profile.fill")
-                .font(.system(size: 20, weight: .medium))
-                .foregroundStyle(.cyan)
-                .scaleEffect(isAnimating ? 1.1 : 1.0)
-                .animation(.easeInOut(duration: 2).repeatForever(), value: isAnimating)
-
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("\(systemMetrics.tokensUsed)")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .foregroundStyle(.cyan)
-
-                    Text("of \(systemMetrics.tokensTotal)")
-                        .font(.system(size: 12, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(systemMetrics.currentPlan)
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundStyle(.cyan)
-
-                    Text("\(Int((Double(systemMetrics.tokensUsed) / Double(systemMetrics.tokensTotal)) * 100))% used")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .contentTransition(.numericText())
-
-            Text("AI Tokens")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(16)
-        .background(liquidGlassBackground(color: .cyan))
         .onAppear {
             isAnimating = true
         }
