@@ -16,8 +16,6 @@ struct LiquidGlassMenuView: View {
             // Metrics with glass cards
             metricsSection
 
-            Spacer(minLength: 0)
-
             // Action buttons
             actionSection
                 .padding(.top, 18)
