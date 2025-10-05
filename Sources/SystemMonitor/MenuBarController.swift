@@ -106,13 +106,14 @@ class MenuBarController: NSObject, ObservableObject {
 
         let iconSize: CGFloat = 16
         let spacing: CGFloat = 5
+        let diskSpacing: CGFloat = 8  // 3 pixels more for disk
         let groupSpacing: CGFloat = 12
 
         // Calculate width for each metric group
         let cpuWidth = iconSize + spacing + cpuText.size(withAttributes: textAttributes).width
         let netText = "↑\(netUpText)/↓\(netDownText)"
         let netWidth = iconSize + spacing + netText.size(withAttributes: textAttributes).width
-        let diskWidth = iconSize + spacing + diskFreeText.size(withAttributes: textAttributes).width
+        let diskWidth = iconSize + diskSpacing + diskFreeText.size(withAttributes: textAttributes).width
 
         let totalWidth = cpuWidth + groupSpacing + netWidth + groupSpacing + diskWidth
 
@@ -153,7 +154,7 @@ class MenuBarController: NSObject, ObservableObject {
             let iconRect = NSRect(x: xOffset, y: (imageSize.height - diskIcon.size.height) / 2, width: diskIcon.size.width, height: diskIcon.size.height)
             diskIcon.draw(in: iconRect)
         }
-        xOffset += iconSize + spacing
+        xOffset += iconSize + diskSpacing
         let diskTextY = (imageSize.height - diskFreeText.size(withAttributes: textAttributes).height) / 2
         diskFreeText.draw(at: NSPoint(x: xOffset, y: diskTextY), withAttributes: textAttributes)
 
