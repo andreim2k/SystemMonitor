@@ -10,12 +10,14 @@ struct LiquidGlassMenuView: View {
         VStack(spacing: 18) {
             // Header with animated gradient
             headerSection
+                .padding(.top, 20)
 
             // Metrics with glass cards
             metricsSection
 
             // Action buttons
             actionSection
+                .padding(.bottom, 20)
         }
         .padding(.horizontal, 24)
         .frame(width: 360, height: 500)
