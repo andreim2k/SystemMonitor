@@ -7,20 +7,24 @@ struct LiquidGlassMenuView: View {
     @State private var particleAnimation = false
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 0) {
             // Header with animated gradient
             headerSection
-                .padding(.top, 20)
+                .padding(.top, 24)
+                .padding(.bottom, 18)
 
             // Metrics with glass cards
             metricsSection
 
+            Spacer(minLength: 0)
+
             // Action buttons
             actionSection
-                .padding(.bottom, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 24)
         }
         .padding(.horizontal, 24)
-        .frame(width: 360, height: 500)
+        .frame(width: 360, height: 500, alignment: .top)
         .background(
             ZStack {
                 // Animated background gradient
@@ -122,7 +126,6 @@ struct LiquidGlassMenuView: View {
             }
             .buttonStyle(LiquidGlassButtonStyle())
         }
-        .padding(.top, 16)
     }
 
     private var backgroundGradient: some View {
