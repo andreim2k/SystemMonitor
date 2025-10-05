@@ -10,6 +10,10 @@ class SystemMetrics: ObservableObject {
     @Published var memoryTotal: Int64 = 0
     @Published var networkUpload: Double = 0.0
     @Published var networkDownload: Double = 0.0
+    
+    // Network monitoring state
+    private var previousNetworkStats: NetworkStats?
+    private var lastNetworkUpdate: Date = Date()
     @Published var diskUsage: Double = 0.0
     @Published var diskUsed: Int64 = 0
     @Published var diskTotal: Int64 = 0
@@ -115,12 +119,68 @@ class SystemMetrics: ObservableObject {
     
     // MARK: - Network Usage
     private func updateNetworkUsage() {
-        // For now, use realistic but low network speeds (can be enhanced later with proper network monitoring)
-        let downloadSpeed = Double.random(in: 0...5) * 1024 * 1024 // 0-5 MB/s (more realistic)
-        let uploadSpeed = Double.random(in: 0...1) * 1024 * 1024   // 0-1 MB/s (more realistic)
+        let currentTime = Date()
+        let currentStats = getNetworkStats()
         
-        self.networkDownload = downloadSpeed
-        self.networkUpload = uploadSpeed
+        if let previous = previousNetworkStats {
+            let timeDelta = currentTime.timeIntervalSince(lastNetworkUpdate)
+            if timeDelta > 0 {
+                let uploadDelta = Double(currentStats.bytesOut - previous.bytesOut)
+                let downloadDelta = Double(currentStats.bytesIn - previous.bytesIn)
+                
+                // Calculate bytes per second, then convert to MB/s
+                self.networkUpload = (uploadDelta / timeDelta) / (1024 * 1024)
+                self.networkDownload = (downloadDelta / timeDelta) / (1024 * 1024)
+            }
+        }
+        
+        previousNetworkStats = currentStats
+        lastNetworkUpdate = currentTime
+    }
+    
+    private func getNetworkStats() -> NetworkStats {
+        // Use netstat command to get network interface statistics
+        let task = Process()
+        task.launchPath = "/usr/bin/netstat"
+        task.arguments = ["-ibn"]
+        
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+        
+        var totalBytesIn: UInt64 = 0
+        var totalBytesOut: UInt64 = 0
+        
+        do {
+            try task.run()
+            task.waitUntilExit()
+            
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+            
+            // Parse netstat output for active network interfaces
+            for line in output.components(separatedBy: "\n") {
+                let components = line.components(separatedBy: CharacterSet.whitespacesAndNewlines)
+                    .filter { !$0.isEmpty }
+                
+                // Look for ethernet and wifi interfaces
+                if let interfaceName = components.first,
+                   components.count >= 10,
+                   (interfaceName.hasPrefix("en") || interfaceName.hasPrefix("wi")) {
+                    
+                    // Extract bytes in and out (columns 7 and 10 in netstat -ibn output)
+                    if let bytesIn = UInt64(components[6]),
+                       let bytesOut = UInt64(components[9]) {
+                        totalBytesIn += bytesIn
+                        totalBytesOut += bytesOut
+                    }
+                }
+            }
+        } catch {
+            // If netstat fails, return zeros
+        }
+        
+        return NetworkStats(bytesIn: totalBytesIn, bytesOut: totalBytesOut)
     }
     
     // MARK: - Disk Usage
@@ -153,6 +213,12 @@ class SystemMetrics: ObservableObject {
             self.diskUsage = usage
         }
     }
+}
+
+// MARK: - Network Statistics Structure
+struct NetworkStats {
+    let bytesIn: UInt64
+    let bytesOut: UInt64
 }
 
 // MARK: - Formatting Helpers

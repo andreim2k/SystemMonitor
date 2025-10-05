@@ -24,8 +24,8 @@ struct SystemMonitorApp: App {
         } label: {
             Image(nsImage: createMenuBarImage(
                 cpu: Int(systemMetrics.cpuUsage),
-                networkUp: Int(systemMetrics.networkUpload/(1024*1024)),
-                networkDown: Int(systemMetrics.networkDownload/(1024*1024)),
+                networkUp: Int(systemMetrics.networkUpload),
+                networkDown: Int(systemMetrics.networkDownload),
                 diskFreeGB: Int((systemMetrics.diskTotal - systemMetrics.diskUsed) / (1024*1024*1024))
             ))
         }
@@ -62,7 +62,7 @@ struct SystemMonitorApp: App {
         let cpuIconTextSpacing: CGFloat = 5  // Space between CPU icon and percentage
         let diskIconTextSpacing: CGFloat = 7  // Space between disk icon and GB text (extra space)
         let cpuWidth = naturalIconWidth + cpuIconTextSpacing + cpuText.size(withAttributes: textAttributes).width
-        let netText = "↑\(netUpText)/↓\(netDownText)M"
+        let netText = "↑\(netUpText)/↓\(netDownText)"
         let netWidth = naturalIconWidth + spacing + netText.size(withAttributes: textAttributes).width
         let diskWidth = naturalIconWidth + diskIconTextSpacing + diskFreeText.size(withAttributes: textAttributes).width
         
@@ -374,12 +374,12 @@ struct LiquidGlassNetworkCard: View {
                 .animation(.easeInOut(duration: 2).repeatForever(), value: isAnimating)
             
             HStack(spacing: 4) {
-                Text("↑\(Int(systemMetrics.networkUpload/(1024*1024)))M")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                Text("↑\(String(format: "%.1f", systemMetrics.networkUpload))MB/s")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.orange)
                 
-                Text("↓\(Int(systemMetrics.networkDownload/(1024*1024)))M")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                Text("↓\(String(format: "%.1f", systemMetrics.networkDownload))MB/s")
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
                     .foregroundStyle(.blue)
             }
             .contentTransition(.numericText())
