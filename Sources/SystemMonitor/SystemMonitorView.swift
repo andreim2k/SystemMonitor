@@ -18,8 +18,6 @@ struct LiquidGlassMenuView: View {
             actionSection
         }
         .padding(.horizontal, 24)
-        .padding(.top, 32)
-        .padding(.bottom, 28)
         .frame(width: 360, height: 500)
         .background(
             ZStack {
