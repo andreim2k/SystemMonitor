@@ -14,8 +14,6 @@ struct LiquidGlassMenuView: View {
             // Metrics with glass cards
             metricsSection
 
-            Spacer()
-
             // Action buttons
             actionSection
         }
@@ -124,6 +122,7 @@ struct LiquidGlassMenuView: View {
             }
             .buttonStyle(LiquidGlassButtonStyle())
         }
+        .padding(.top, 16)
     }
 
     private var backgroundGradient: some View {
