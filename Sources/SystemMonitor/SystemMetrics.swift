@@ -124,14 +124,29 @@ class SystemMetrics: ObservableObject {
         
         if let previous = previousNetworkStats {
             let timeDelta = currentTime.timeIntervalSince(lastNetworkUpdate)
-            if timeDelta > 0 {
+            if timeDelta > 0.5 { // Only update if enough time has passed
                 let uploadDelta = Double(currentStats.bytesOut - previous.bytesOut)
                 let downloadDelta = Double(currentStats.bytesIn - previous.bytesIn)
                 
                 // Calculate bytes per second, then convert to MB/s
-                self.networkUpload = (uploadDelta / timeDelta) / (1024 * 1024)
-                self.networkDownload = (downloadDelta / timeDelta) / (1024 * 1024)
+                let uploadMBps = (uploadDelta / timeDelta) / (1024 * 1024)
+                let downloadMBps = (downloadDelta / timeDelta) / (1024 * 1024)
+                
+                // Add bounds checking to prevent unrealistic values
+                // Cap at 1000 MB/s (very high but possible for local transfers)
+                self.networkUpload = max(0, min(uploadMBps, 1000))
+                self.networkDownload = max(0, min(downloadMBps, 1000))
+                
+                // Reset if values seem unrealistic (likely overflow or counter reset)
+                if uploadMBps > 1000 || downloadMBps > 1000 || uploadDelta < 0 || downloadDelta < 0 {
+                    self.networkUpload = 0
+                    self.networkDownload = 0
+                }
             }
+        } else {
+            // First run, just initialize
+            self.networkUpload = 0
+            self.networkDownload = 0
         }
         
         previousNetworkStats = currentStats
@@ -163,16 +178,18 @@ class SystemMetrics: ObservableObject {
                 let components = line.components(separatedBy: CharacterSet.whitespacesAndNewlines)
                     .filter { !$0.isEmpty }
                 
-                // Look for ethernet and wifi interfaces
+                // Look for primary ethernet interface only (en0 is usually the main one)
+                // Skip virtual, tunnel, and bridge interfaces
                 if let interfaceName = components.first,
                    components.count >= 10,
-                   (interfaceName.hasPrefix("en") || interfaceName.hasPrefix("wi")) {
+                   interfaceName == "en0" { // Focus on main interface only
                     
                     // Extract bytes in and out (columns 7 and 10 in netstat -ibn output)
                     if let bytesIn = UInt64(components[6]),
                        let bytesOut = UInt64(components[9]) {
-                        totalBytesIn += bytesIn
-                        totalBytesOut += bytesOut
+                        totalBytesIn = bytesIn  // Use assignment, not addition
+                        totalBytesOut = bytesOut
+                        break // Found en0, no need to continue
                     }
                 }
             }
