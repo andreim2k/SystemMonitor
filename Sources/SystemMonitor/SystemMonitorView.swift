@@ -22,7 +22,7 @@ struct LiquidGlassMenuView: View {
                 .padding(.bottom, 24)
         }
         .padding(.horizontal, 24)
-        .frame(width: 360, height: 460, alignment: .top)
+        .frame(width: 360, height: 430, alignment: .top)
         .background(
             ZStack {
                 // Animated background gradient
@@ -148,7 +148,7 @@ struct LiquidGlassMenuView: View {
                     .frame(width: CGFloat.random(in: 3...6))
                     .position(
                         x: CGFloat.random(in: 0...360),
-                        y: CGFloat.random(in: 0...460)
+                        y: CGFloat.random(in: 0...430)
                     )
                     .animation(
                         .linear(duration: Double.random(in: 4...8))
