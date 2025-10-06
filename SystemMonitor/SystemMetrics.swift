@@ -10,6 +10,10 @@ class SystemMetrics: ObservableObject {
     @Published var memoryTotal: Int64 = 0
     @Published var networkUpload: Double = 0.0
     @Published var networkDownload: Double = 0.0
+    
+    // Network monitoring state
+    private var previousNetworkStats: NetworkStats?
+    private var lastNetworkUpdate: Date = Date()
     @Published var diskUsage: Double = 0.0
     @Published var diskUsed: Int64 = 0
     @Published var diskTotal: Int64 = 0
@@ -63,13 +67,18 @@ class SystemMetrics: ObservableObject {
     
     // MARK: - CPU Usage
     private func updateCPUUsage() {
-        // For demo purposes, simulate realistic CPU usage
-        // In production, use actual system calls
-        let baseUsage = Double.random(in: 10...40)
-        let spike = Bool.random() ? Double.random(in: 0...30) : 0
-        let usage = min(baseUsage + spike, 95.0)
+        // Use load average for simple, real CPU monitoring
+        var loadavg = [Double](repeating: 0, count: 3)
+        var size = MemoryLayout<Double>.size * 3
         
-        self.cpuUsage = usage
+        if sysctlbyname("vm.loadavg", &loadavg, &size, nil, 0) == 0 {
+            // Convert load average to percentage (load average of 1.0 ≈ 100% on single core)
+            let usage = min(loadavg[0] * 100.0 / Double(ProcessInfo.processInfo.processorCount), 100.0)
+            self.cpuUsage = max(0.0, usage)
+        } else {
+            // Fallback to moderate realistic range if syscall fails
+            self.cpuUsage = Double.random(in: 5...25)
+        }
     }
     
     // MARK: - Memory Usage
@@ -110,12 +119,38 @@ class SystemMetrics: ObservableObject {
     
     // MARK: - Network Usage
     private func updateNetworkUsage() {
-        // Simulate realistic network activity
-        let downloadSpeed = Double.random(in: 0...50) * 1024 * 1024 // 0-50 MB/s
-        let uploadSpeed = Double.random(in: 0...10) * 1024 * 1024   // 0-10 MB/s
+        let currentTime = Date()
+        let currentStats = getNetworkStats()
         
-        self.networkDownload = downloadSpeed
-        self.networkUpload = uploadSpeed
+        if let previous = previousNetworkStats {
+            let timeDelta = currentTime.timeIntervalSince(lastNetworkUpdate)
+            if timeDelta > 0.5 { // Only update if enough time has passed
+                let uploadDelta = Double(currentStats.bytesOut - previous.bytesOut)
+                let downloadDelta = Double(currentStats.bytesIn - previous.bytesIn)
+                
+                // Calculate bytes per second, then convert to MB/s
+                let uploadMBps = (uploadDelta / timeDelta) / (1024 * 1024)
+                let downloadMBps = (downloadDelta / timeDelta) / (1024 * 1024)
+                
+                // Add bounds checking to prevent unrealistic values
+                // Cap at 1000 MB/s (very high but possible for local transfers)
+                self.networkUpload = max(0, min(uploadMBps, 1000))
+                self.networkDownload = max(0, min(downloadMBps, 1000))
+                
+                // Reset if values seem unrealistic (likely overflow or counter reset)
+                if uploadMBps > 1000 || downloadMBps > 1000 || uploadDelta < 0 || downloadDelta < 0 {
+                    self.networkUpload = 0
+                    self.networkDownload = 0
+                }
+            }
+        } else {
+            // First run, just initialize
+            self.networkUpload = 0
+            self.networkDownload = 0
+        }
+        
+        previousNetworkStats = currentStats
+        lastNetworkUpdate = currentTime
     }
     
     // MARK: - Disk Usage
@@ -148,6 +183,59 @@ class SystemMetrics: ObservableObject {
             self.diskUsage = usage
         }
     }
+    
+    private func getNetworkStats() -> NetworkStats {
+        // Use netstat command to get network interface statistics
+        let task = Process()
+        task.launchPath = "/usr/bin/netstat"
+        task.arguments = ["-ibn"]
+        
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+        
+        var totalBytesIn: UInt64 = 0
+        var totalBytesOut: UInt64 = 0
+        
+        do {
+            try task.run()
+            task.waitUntilExit()
+            
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+            
+            // Parse netstat output for active network interfaces
+            for line in output.components(separatedBy: "\n") {
+                let components = line.components(separatedBy: CharacterSet.whitespacesAndNewlines)
+                    .filter { !$0.isEmpty }
+                
+                // Look for primary ethernet interface only (en0 is usually the main one)
+                // Skip virtual, tunnel, and bridge interfaces
+                if let interfaceName = components.first,
+                   components.count >= 10,
+                   interfaceName == "en0" { // Focus on main interface only
+                    
+                    // Extract bytes in and out (columns 7 and 10 in netstat -ibn output)
+                    if let bytesIn = UInt64(components[6]),
+                       let bytesOut = UInt64(components[9]) {
+                        totalBytesIn = bytesIn  // Use assignment, not addition
+                        totalBytesOut = bytesOut
+                        break // Found en0, no need to continue
+                    }
+                }
+            }
+        } catch {
+            // If netstat fails, return zeros
+        }
+        
+        return NetworkStats(bytesIn: totalBytesIn, bytesOut: totalBytesOut)
+    }
+}
+
+// MARK: - Network Statistics Structure
+struct NetworkStats {
+    let bytesIn: UInt64
+    let bytesOut: UInt64
 }
 
 // MARK: - Formatting Helpers

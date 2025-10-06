@@ -7,7 +7,7 @@ A beautiful macOS system monitor that displays real-time CPU, Memory, Network, a
 ✅ **Real-time System Metrics** - CPU, Memory, Network, Disk usage  
 ✅ **Menu Bar Integration** - Clean SF Symbol icons with live data  
 ✅ **Beautiful UI** - Liquid glass design with smooth animations  
-✅ **macOS 26+ Compatible** - Works with latest macOS versions  
+✅ **macOS 14+ Compatible** - Works with latest macOS versions  
 ✅ **Low Resource Usage** - Efficient system monitoring  
 
 ## Menu Bar Display

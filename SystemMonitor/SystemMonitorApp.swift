@@ -4,7 +4,7 @@
 //
 //  macOS System Monitor with Menu Bar Display
 //  Shows CPU, Memory, Network, and Disk usage with SF Symbols
-//  Compatible with macOS 26+
+//  Compatible with macOS 14+
 //
 
 import SwiftUI
@@ -34,7 +34,7 @@ struct SystemMonitorApp: App {
     
     // MARK: - Menu Bar Image Creation
     /// Creates a single NSImage with all metrics and SF Symbol icons
-    /// This approach bypasses macOS 26 MenuBarExtra limitations
+    /// This approach bypasses macOS MenuBarExtra limitations
     private func createMenuBarImage(cpu: Int, memory: Int, network: Int, disk: Int) -> NSImage {
         // Calculate total width needed
         let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
@@ -218,7 +218,7 @@ struct LiquidGlassMenuView: View {
                         .fontWeight(.bold)
                         .foregroundStyle(.primary)
                     
-                    Text("macOS 26 • Real-time")
+                    Text("macOS 14+ • Real-time")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
