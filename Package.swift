@@ -15,6 +15,12 @@ let package = Package(
         .executableTarget(
             name: "SystemMonitor",
             path: "Sources/SystemMonitor"
+        ),
+        .testTarget(
+            name: "SystemMonitorTests",
+            dependencies: ["SystemMonitor"],
+            path: "Tests/SystemMonitorTests",
+            exclude: ["README.md"]
         )
     ]
 )
