@@ -4,25 +4,34 @@ import IOKit
 import SwiftUI
 
 class SystemMetrics: ObservableObject {
+    // MARK: - Constants
+    private enum Constants {
+        static let updateInterval: TimeInterval = 1.0
+        static let historyMaxPoints = 60
+        static let networkUpdateThreshold: TimeInterval = 0.5
+        static let maxNetworkSpeedMBps: Double = 1000.0
+        static let bytesPerMB: Double = 1024 * 1024
+    }
+
     @Published var cpuUsage: Double = 0.0
     @Published var memoryUsage: Double = 0.0
     @Published var memoryUsed: Int64 = 0
     @Published var memoryTotal: Int64 = 0
     @Published var networkUpload: Double = 0.0
     @Published var networkDownload: Double = 0.0
-    
+
     // Network monitoring state
     private var previousNetworkStats: NetworkStats?
     private var lastNetworkUpdate: Date = Date()
     @Published var diskUsage: Double = 0.0
     @Published var diskUsed: Int64 = 0
     @Published var diskTotal: Int64 = 0
-    
+
     @Published var cpuHistory: [Double] = []
     @Published var memoryHistory: [Double] = []
     @Published var networkUploadHistory: [Double] = []
     @Published var networkDownloadHistory: [Double] = []
-    
+
     private var timer: Timer?
     
     init() {
@@ -35,9 +44,9 @@ class SystemMetrics: ObservableObject {
     
     private func startMonitoring() {
         updateMetrics()
-        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+        timer = Timer.scheduledTimer(withTimeInterval: Constants.updateInterval, repeats: true) { [weak self] _ in
             DispatchQueue.main.async {
-                self.updateMetrics()
+                self?.updateMetrics()
             }
         }
     }
@@ -53,11 +62,10 @@ class SystemMetrics: ObservableObject {
     private func updateHistory() {
         cpuHistory.append(cpuUsage)
         memoryHistory.append(memoryUsage)
-        networkUploadHistory.append(networkUpload / (1024 * 1024)) // Convert to MB for charting
-        networkDownloadHistory.append(networkDownload / (1024 * 1024))
-        
-        let maxHistory = 60 // Keep 60 seconds of history
-        if cpuHistory.count > maxHistory {
+        networkUploadHistory.append(networkUpload / Constants.bytesPerMB) // Convert to MB for charting
+        networkDownloadHistory.append(networkDownload / Constants.bytesPerMB)
+
+        if cpuHistory.count > Constants.historyMaxPoints {
             cpuHistory.removeFirst()
             memoryHistory.removeFirst()
             networkUploadHistory.removeFirst()
@@ -124,21 +132,20 @@ class SystemMetrics: ObservableObject {
         
         if let previous = previousNetworkStats {
             let timeDelta = currentTime.timeIntervalSince(lastNetworkUpdate)
-            if timeDelta > 0.5 { // Only update if enough time has passed
+            if timeDelta > Constants.networkUpdateThreshold { // Only update if enough time has passed
                 let uploadDelta = Double(currentStats.bytesOut - previous.bytesOut)
                 let downloadDelta = Double(currentStats.bytesIn - previous.bytesIn)
-                
+
                 // Calculate bytes per second, then convert to MB/s
-                let uploadMBps = (uploadDelta / timeDelta) / (1024 * 1024)
-                let downloadMBps = (downloadDelta / timeDelta) / (1024 * 1024)
-                
+                let uploadMBps = (uploadDelta / timeDelta) / Constants.bytesPerMB
+                let downloadMBps = (downloadDelta / timeDelta) / Constants.bytesPerMB
+
                 // Add bounds checking to prevent unrealistic values
-                // Cap at 1000 MB/s (very high but possible for local transfers)
-                self.networkUpload = max(0, min(uploadMBps, 1000))
-                self.networkDownload = max(0, min(downloadMBps, 1000))
-                
+                self.networkUpload = max(0, min(uploadMBps, Constants.maxNetworkSpeedMBps))
+                self.networkDownload = max(0, min(downloadMBps, Constants.maxNetworkSpeedMBps))
+
                 // Reset if values seem unrealistic (likely overflow or counter reset)
-                if uploadMBps > 1000 || downloadMBps > 1000 || uploadDelta < 0 || downloadDelta < 0 {
+                if uploadMBps > Constants.maxNetworkSpeedMBps || downloadMBps > Constants.maxNetworkSpeedMBps || uploadDelta < 0 || downloadDelta < 0 {
                     self.networkUpload = 0
                     self.networkDownload = 0
                 }
@@ -155,10 +162,11 @@ class SystemMetrics: ObservableObject {
     
     // MARK: - Disk Usage
     private func updateDiskUsage() {
-        let homeURL = FileManager.default.homeDirectoryForCurrentUser
-        
+        // Use root volume to get system disk usage
+        let rootURL = URL(fileURLWithPath: "/")
+
         do {
-            let resourceValues = try homeURL.resourceValues(forKeys: [
+            let resourceValues = try rootURL.resourceValues(forKeys: [
                 .volumeAvailableCapacityKey,
                 .volumeTotalCapacityKey
             ])
@@ -208,21 +216,25 @@ class SystemMetrics: ObservableObject {
             for line in output.components(separatedBy: "\n") {
                 let components = line.components(separatedBy: CharacterSet.whitespacesAndNewlines)
                     .filter { !$0.isEmpty }
-                
+
                 // Look for primary ethernet interface only (en0 is usually the main one)
                 // Skip virtual, tunnel, and bridge interfaces
-                if let interfaceName = components.first,
-                   components.count >= 10,
-                   interfaceName == "en0" { // Focus on main interface only
-                    
-                    // Extract bytes in and out (columns 7 and 10 in netstat -ibn output)
-                    if let bytesIn = UInt64(components[6]),
-                       let bytesOut = UInt64(components[9]) {
-                        totalBytesIn = bytesIn  // Use assignment, not addition
-                        totalBytesOut = bytesOut
-                        break // Found en0, no need to continue
-                    }
+                guard components.count >= 10,
+                      let interfaceName = components.first,
+                      interfaceName == "en0" else { // Focus on main interface only
+                    continue
                 }
+
+                // Extract bytes in and out (columns 7 and 10 in netstat -ibn output)
+                // Using guard to ensure safe array access
+                guard let bytesIn = UInt64(components[6]),
+                      let bytesOut = UInt64(components[9]) else {
+                    continue
+                }
+
+                totalBytesIn = bytesIn  // Use assignment, not addition
+                totalBytesOut = bytesOut
+                break // Found en0, no need to continue
             }
         } catch {
             // If netstat fails, return zeros

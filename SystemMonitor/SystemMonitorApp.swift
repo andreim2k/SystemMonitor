@@ -75,13 +75,13 @@ struct SystemMonitorApp: App {
         
         // CPU - gear icon
         let config = NSImage.SymbolConfiguration(pointSize: iconSize, weight: .regular)
-        if let cpuIcon = NSImage(systemSymbolName: "cpu", accessibilityDescription: "CPU")?.withSymbolConfiguration(config) {
-            let whiteIcon = cpuIcon.copy() as! NSImage
+        if let cpuIcon = NSImage(systemSymbolName: "cpu", accessibilityDescription: "CPU")?.withSymbolConfiguration(config),
+           let whiteIcon = cpuIcon.copy() as? NSImage {
             whiteIcon.lockFocus()
             NSColor.white.set()
             NSRect(origin: .zero, size: whiteIcon.size).fill(using: .sourceAtop)
             whiteIcon.unlockFocus()
-            
+
             whiteIcon.size = NSSize(width: iconSize, height: iconSize)
             whiteIcon.draw(in: NSRect(x: xOffset, y: iconYOffset, width: iconSize, height: iconSize))
         }
@@ -91,13 +91,13 @@ struct SystemMonitorApp: App {
         xOffset += cpuText.size(withAttributes: textAttributes).width + groupSpacing
         
         // Memory - chip icon
-        if let memIcon = NSImage(systemSymbolName: "memorychip", accessibilityDescription: "Memory")?.withSymbolConfiguration(config) {
-            let whiteIcon = memIcon.copy() as! NSImage
+        if let memIcon = NSImage(systemSymbolName: "memorychip", accessibilityDescription: "Memory")?.withSymbolConfiguration(config),
+           let whiteIcon = memIcon.copy() as? NSImage {
             whiteIcon.lockFocus()
             NSColor.white.set()
             NSRect(origin: .zero, size: whiteIcon.size).fill(using: .sourceAtop)
             whiteIcon.unlockFocus()
-            
+
             whiteIcon.size = NSSize(width: iconSize, height: iconSize)
             whiteIcon.draw(in: NSRect(x: xOffset, y: iconYOffset, width: iconSize, height: iconSize))
         }
@@ -107,13 +107,13 @@ struct SystemMonitorApp: App {
         xOffset += memText.size(withAttributes: textAttributes).width + groupSpacing
         
         // Network - wifi icon
-        if let netIcon = NSImage(systemSymbolName: "wifi", accessibilityDescription: "Network")?.withSymbolConfiguration(config) {
-            let whiteIcon = netIcon.copy() as! NSImage
+        if let netIcon = NSImage(systemSymbolName: "wifi", accessibilityDescription: "Network")?.withSymbolConfiguration(config),
+           let whiteIcon = netIcon.copy() as? NSImage {
             whiteIcon.lockFocus()
             NSColor.white.set()
             NSRect(origin: .zero, size: whiteIcon.size).fill(using: .sourceAtop)
             whiteIcon.unlockFocus()
-            
+
             whiteIcon.size = NSSize(width: iconSize, height: iconSize)
             whiteIcon.draw(in: NSRect(x: xOffset, y: iconYOffset, width: iconSize, height: iconSize))
         }
@@ -123,13 +123,13 @@ struct SystemMonitorApp: App {
         xOffset += netText.size(withAttributes: textAttributes).width + groupSpacing
         
         // Disk - external drive icon
-        if let diskIcon = NSImage(systemSymbolName: "externaldrive", accessibilityDescription: "Disk")?.withSymbolConfiguration(config) {
-            let whiteIcon = diskIcon.copy() as! NSImage
+        if let diskIcon = NSImage(systemSymbolName: "externaldrive", accessibilityDescription: "Disk")?.withSymbolConfiguration(config),
+           let whiteIcon = diskIcon.copy() as? NSImage {
             whiteIcon.lockFocus()
             NSColor.white.set()
             NSRect(origin: .zero, size: whiteIcon.size).fill(using: .sourceAtop)
             whiteIcon.unlockFocus()
-            
+
             whiteIcon.size = NSSize(width: iconSize, height: iconSize)
             whiteIcon.draw(in: NSRect(x: xOffset, y: iconYOffset, width: iconSize, height: iconSize))
         }
