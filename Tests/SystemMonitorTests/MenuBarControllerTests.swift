@@ -264,3 +264,4 @@ final class MenuBarControllerTests: XCTestCase {
         wait(for: [expectation], timeout: TestConstants.defaultTimeout)
     }
 }
+

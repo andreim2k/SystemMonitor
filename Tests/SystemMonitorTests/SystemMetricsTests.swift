@@ -325,3 +325,4 @@ final class SystemMetricsTests: XCTestCase {
         XCTAssertTrue(true, "SystemMetrics should clean up properly")
     }
 }
+
