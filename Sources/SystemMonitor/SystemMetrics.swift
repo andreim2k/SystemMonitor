@@ -75,17 +75,63 @@ class SystemMetrics: ObservableObject {
     
     // MARK: - CPU Usage  
     private func updateCPUUsage() {
-        // Use load average for simple, real CPU monitoring
-        var loadavg = [Double](repeating: 0, count: 3)
-        var size = MemoryLayout<Double>.size * 3
-        
-        if sysctlbyname("vm.loadavg", &loadavg, &size, nil, 0) == 0 {
-            // Convert load average to percentage (load average of 1.0 ≈ 100% on single core)
-            let usage = min(loadavg[0] * 100.0 / Double(ProcessInfo.processInfo.processorCount), 100.0)
-            self.cpuUsage = max(0.0, usage)
-        } else {
-            // Fallback to moderate realistic range if syscall fails
-            self.cpuUsage = Double.random(in: 5...25)
+        // Use top command for accurate CPU usage
+        let task = Process()
+        task.launchPath = "/usr/bin/top"
+        task.arguments = ["-l", "1", "-n", "0"]
+
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = Pipe()
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let output = String(data: data, encoding: .utf8) ?? ""
+
+            // Parse top output for CPU usage
+            for line in output.components(separatedBy: "\n") {
+                if line.contains("CPU usage:") {
+                    let components = line.components(separatedBy: CharacterSet.whitespacesAndNewlines)
+                        .filter { !$0.isEmpty }
+                    
+                    // Look for user and sys percentages
+                    var userPercent: Double = 0.0
+                    var sysPercent: Double = 0.0
+                    
+                    for (index, component) in components.enumerated() {
+                        if component == "user," && index > 0 {
+                            let userStr = components[index - 1].replacingOccurrences(of: "%", with: "")
+                            if let user = Double(userStr) {
+                                userPercent = user
+                            }
+                        }
+                        if component == "sys," && index > 0 {
+                            let sysStr = components[index - 1].replacingOccurrences(of: "%", with: "")
+                            if let sys = Double(sysStr) {
+                                sysPercent = sys
+                            }
+                        }
+                    }
+                    
+                    let totalUsage = userPercent + sysPercent
+                    self.cpuUsage = max(0.0, min(totalUsage, 100.0))
+                    return
+                }
+            }
+        } catch {
+            // Fallback: Use load average
+            var loadavg = [Double](repeating: 0, count: 3)
+            var size = MemoryLayout<Double>.size * 3
+            
+            if sysctlbyname("vm.loadavg", &loadavg, &size, nil, 0) == 0 {
+                let usage = min(loadavg[0] * 100.0 / Double(ProcessInfo.processInfo.processorCount), 100.0)
+                self.cpuUsage = max(0.0, usage)
+            } else {
+                self.cpuUsage = 0.0
+            }
         }
     }
     
@@ -114,10 +160,10 @@ class SystemMetrics: ObservableObject {
             self.memoryTotal = totalBytes
             self.memoryUsage = usage
         } else {
-            // Fallback to simulated data
+            // Fallback: Use conservative estimate based on system info
             let totalBytes = Int64(physicalMemory)
-            let usedBytes = Int64(Double.random(in: 0.4...0.8) * Double(totalBytes))
-            let usage = Double(usedBytes) / Double(totalBytes) * 100.0
+            let usedBytes = Int64(0.5 * Double(totalBytes)) // Conservative 50% estimate
+            let usage = 50.0
             
             self.memoryUsed = usedBytes
             self.memoryTotal = totalBytes
@@ -163,7 +209,7 @@ class SystemMetrics: ObservableObject {
     private func getNetworkStats() -> NetworkStats {
         // Use netstat command to get network interface statistics
         let task = Process()
-        task.launchPath = "/usr/bin/netstat"
+        task.launchPath = "/usr/sbin/netstat"
         task.arguments = ["-ibn"]
         
         let pipe = Pipe()
@@ -232,14 +278,47 @@ class SystemMetrics: ObservableObject {
                 self.diskUsage = usage
             }
         } catch {
-            // Fallback to simulated data
-            let totalBytes: Int64 = 1024 * 1024 * 1024 * 512 // 512 GB
-            let usedBytes = Int64(Double.random(in: 0.5...0.8) * Double(totalBytes))
-            let usage = Double(usedBytes) / Double(totalBytes) * 100.0
+            // Fallback: Use df command for disk usage
+            let task = Process()
+            task.launchPath = "/bin/df"
+            task.arguments = ["-k", "/"] // Get disk usage in KB for root volume
             
-            self.diskUsed = usedBytes
-            self.diskTotal = totalBytes
-            self.diskUsage = usage
+            let pipe = Pipe()
+            task.standardOutput = pipe
+            task.standardError = Pipe()
+            
+            do {
+                try task.run()
+                task.waitUntilExit()
+                
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: data, encoding: .utf8) ?? ""
+                
+                // Parse df output: Filesystem 1K-blocks Used Available Use% Mounted on
+                let lines = output.components(separatedBy: "\n")
+                if lines.count >= 2 {
+                    let components = lines[1].components(separatedBy: CharacterSet.whitespacesAndNewlines)
+                        .filter { !$0.isEmpty }
+                    
+                    if components.count >= 6,
+                       let totalKB = Int64(components[1]),
+                       let usedKB = Int64(components[2]) {
+                        let totalBytes = totalKB * 1024
+                        let usedBytes = usedKB * 1024
+                        let usage = Double(usedBytes) / Double(totalBytes) * 100.0
+                        
+                        self.diskUsed = usedBytes
+                        self.diskTotal = totalBytes
+                        self.diskUsage = usage
+                    } else {
+                        self.diskUsage = 0.0
+                    }
+                } else {
+                    self.diskUsage = 0.0
+                }
+            } catch {
+                self.diskUsage = 0.0
+            }
         }
     }
 }
